@@ -159,7 +159,7 @@ export default function TeamTasks() {
           >
             {word}
             <ExternalLink className="w-3 h-3" />
-          </a>
+          </a>,
         );
       } else {
         result.push(word);
@@ -237,11 +237,10 @@ export default function TeamTasks() {
             !fileExtension ||
             !field.acceptedFormats.includes(fileExtension)
           ) {
-            errors[
-              field.label
-            ] = `File format not allowed. Allowed: .${field.acceptedFormats.join(
-              ", ."
-            )}`;
+            errors[field.label] =
+              `File format not allowed. Allowed: .${field.acceptedFormats.join(
+                ", .",
+              )}`;
           }
         }
       }
@@ -253,9 +252,8 @@ export default function TeamTasks() {
       ) {
         const textValue = formData[field.label] as string;
         if (textValue && textValue.length > field.maxLength) {
-          errors[
-            field.label
-          ] = `Text must be ${field.maxLength} characters or less`;
+          errors[field.label] =
+            `Text must be ${field.maxLength} characters or less`;
         }
       }
     });
@@ -287,7 +285,7 @@ export default function TeamTasks() {
             Authorization: `Bearer ${token}`,
           },
           body: submitFormData,
-        }
+        },
       );
 
       if (response.ok) {
@@ -394,7 +392,7 @@ export default function TeamTasks() {
                       </h3>
                       <div
                         className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getStatusColor(
-                          status
+                          status,
                         )}`}
                       >
                         {getStatusIcon(status)}
@@ -481,7 +479,7 @@ export default function TeamTasks() {
                           <span className="text-sm text-gray-300">
                             Submitted{" "}
                             {new Date(
-                              task.submission.submittedAt
+                              task.submission.submittedAt,
                             ).toLocaleDateString()}
                           </span>
                         </div>
@@ -507,24 +505,12 @@ export default function TeamTasks() {
                       ) : (
                         <button
                           onClick={() => openSubmissionForm(task)}
-                          disabled={overdue}
-                          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            overdue
-                              ? "bg-gray-700 text-gray-500 cursor-not-allowed border border-gray-600"
-                              : "bg-heading/20 text-heading border border-heading/30 hover:bg-heading/30"
-                          }`}
+                          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${"bg-heading/20 text-heading border border-heading/30 hover:bg-heading/30"}`}
                         >
-                          {overdue ? (
-                            <>
-                              <AlertCircle className="w-4 h-4" />
-                              Deadline Passed
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="w-4 h-4" />
-                              Submit
-                            </>
-                          )}
+                          <>
+                            <Upload className="w-4 h-4" />
+                            Submit
+                          </>
                         </button>
                       )}
                     </div>
@@ -571,7 +557,7 @@ export default function TeamTasks() {
                         <p className="text-sm text-green-400 mt-1">
                           ✓ Submitted on{" "}
                           {new Date(
-                            selectedTask.submission.submittedAt
+                            selectedTask.submission.submittedAt,
                           ).toLocaleDateString()}
                         </p>
                       )}
@@ -669,7 +655,7 @@ export default function TeamTasks() {
                                   onChange={(e) =>
                                     handleFieldChange(
                                       field.label,
-                                      e.target.value
+                                      e.target.value,
                                     )
                                   }
                                   placeholder={field.placeholder}
@@ -798,7 +784,7 @@ export default function TeamTasks() {
                                   onChange={(e) =>
                                     handleFieldChange(
                                       field.label,
-                                      e.target.value
+                                      e.target.value,
                                     )
                                   }
                                   placeholder={
@@ -897,7 +883,7 @@ export default function TeamTasks() {
                                       {renderValueWithLinks(value)}
                                     </span>
                                   </div>
-                                )
+                                ),
                               )}
                             </div>
                           </div>
@@ -938,7 +924,7 @@ export default function TeamTasks() {
                                       </a>
                                     </div>
                                   );
-                                }
+                                },
                               )}
                             </div>
                           </div>

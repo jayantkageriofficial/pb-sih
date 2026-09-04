@@ -16,7 +16,7 @@ import { Types } from "mongoose";
 // POST /api/team/tasks/[taskId]/submit - Submit a task
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ taskId: string }> }
+  context: { params: Promise<{ taskId: string }> },
 ) {
   try {
     const { taskId } = await context.params;
@@ -24,7 +24,7 @@ export async function POST(
     if (!isValidObjectId(taskId)) {
       return NextResponse.json(
         { success: false, error: "Invalid task ID" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -35,7 +35,7 @@ export async function POST(
     if (!user || user.role !== "leader") {
       return NextResponse.json(
         { success: false, error: "Team leader authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -46,7 +46,7 @@ export async function POST(
     if (!team) {
       return NextResponse.json(
         { success: false, error: "Team not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -55,41 +55,43 @@ export async function POST(
     if (!task) {
       return NextResponse.json(
         { success: false, error: "Task not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Check if task is assigned to this team
-    const isAssigned = task.availableToAll || task.assignedTo.some(
-      (teamId) => teamId.toString() === team._id.toString()
-    );
+    const isAssigned =
+      task.availableToAll ||
+      task.assignedTo.some(
+        (teamId) => teamId.toString() === team._id.toString(),
+      );
 
     if (!isAssigned) {
       return NextResponse.json(
         { success: false, error: "Task not assigned to your team" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     // Check if task is still active
-    if (!task.isActive) {
-      return NextResponse.json(
-        { success: false, error: "Task is no longer active" },
-        { status: 400 }
-      );
-    }
+    // if (!task.isActive) {
+    //   return NextResponse.json(
+    //     { success: false, error: "Task is no longer active" },
+    //     { status: 400 }
+    //   );
+    // }
 
     // Check if due date has passed
-    if (task.dueDate && new Date() > task.dueDate) {
-      return NextResponse.json(
-        { success: false, error: "Task submission deadline has passed" },
-        { status: 400 }
-      );
-    }
+    // if (task.dueDate && new Date() > task.dueDate) {
+    //   return NextResponse.json(
+    //     { success: false, error: "Task submission deadline has passed" },
+    //     { status: 400 },
+    //   );
+    // }
 
     const submissionTaskId = new Types.ObjectId(taskId);
     const existingSubmission = team.tasks.find(
-      (sub) => sub.taskId.toString() === taskId
+      (sub) => sub.taskId.toString() === taskId,
     );
 
     // Evaluated submissions are immutable. Check before processing uploads so
@@ -104,7 +106,7 @@ export async function POST(
           success: false,
           error: "This submission is locked after evaluation",
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -120,7 +122,7 @@ export async function POST(
       if (field.required && (!fieldValue || fieldValue === "")) {
         return NextResponse.json(
           { success: false, error: `Field '${field.label}' is required` },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -131,14 +133,14 @@ export async function POST(
       ) {
         return NextResponse.json(
           { success: false, error: `Field '${field.label}' must be a file` },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       if (field.type !== "file" && fieldValue instanceof File) {
         return NextResponse.json(
           { success: false, error: `Field '${field.label}' must be text data` },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -146,7 +148,7 @@ export async function POST(
         if (fieldValue.size === 0) {
           return NextResponse.json(
             { success: false, error: `File '${field.label}' cannot be empty` },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -163,7 +165,7 @@ export async function POST(
               field.acceptedFormats && field.acceptedFormats.length > 0
                 ? field.acceptedFormats
                 : ["pdf", "ppt", "pptx", "doc", "docx"], // Default formats
-          }
+          },
         );
 
         if (!validation.isValid) {
@@ -172,7 +174,7 @@ export async function POST(
               success: false,
               error: `File '${field.label}': ${validation.error}`,
             },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -182,7 +184,7 @@ export async function POST(
           const fileBuffer = Buffer.from(await fieldValue.arrayBuffer());
 
           console.log(
-            `Uploading file: ${fieldValue.name}, size: ${fileBuffer.length}, type: ${fieldValue.type}`
+            `Uploading file: ${fieldValue.name}, size: ${fileBuffer.length}, type: ${fieldValue.type}`,
           );
 
           // Determine resource type and format based on file type
@@ -207,7 +209,7 @@ export async function POST(
           }
 
           console.log(
-            `Detected format: ${format}, resource_type: ${resourceType}`
+            `Detected format: ${format}, resource_type: ${resourceType}`,
           );
 
           // Upload with original filename preserved - simplified
@@ -249,7 +251,7 @@ export async function POST(
               success: false,
               error: `Failed to upload file ${fieldValue.name}: ${errorMessage}`,
             },
-            { status: 500 }
+            { status: 500 },
           );
         }
       } else if (fieldValue) {
@@ -265,23 +267,29 @@ export async function POST(
                 success: false,
                 error: `Field '${field.label}' exceeds maximum length of ${field.maxLength} characters`,
               },
-              { status: 400 }
+              { status: 400 },
             );
           }
         } else if (field.type === "url") {
           normalizedValue = sanitizeSingleLineText(fieldValueString, 2048);
           if (!validateURL(normalizedValue)) {
             return NextResponse.json(
-              { success: false, error: `Field '${field.label}' must be a valid URL` },
-              { status: 400 }
+              {
+                success: false,
+                error: `Field '${field.label}' must be a valid URL`,
+              },
+              { status: 400 },
             );
           }
         } else if (field.type === "number") {
           const numberValue = Number(fieldValueString);
           if (!Number.isFinite(numberValue)) {
             return NextResponse.json(
-              { success: false, error: `Field '${field.label}' must be a valid number` },
-              { status: 400 }
+              {
+                success: false,
+                error: `Field '${field.label}' must be a valid number`,
+              },
+              { status: 400 },
             );
           }
           normalizedValue = numberValue;
@@ -289,8 +297,11 @@ export async function POST(
           const dateValue = new Date(fieldValueString);
           if (Number.isNaN(dateValue.getTime())) {
             return NextResponse.json(
-              { success: false, error: `Field '${field.label}' must be a valid date` },
-              { status: 400 }
+              {
+                success: false,
+                error: `Field '${field.label}' must be a valid date`,
+              },
+              { status: 400 },
             );
           }
           normalizedValue = dateValue.toISOString();
@@ -322,7 +333,7 @@ export async function POST(
             },
           },
           { $set: { "tasks.$": submission } },
-          { new: true, runValidators: true }
+          { new: true, runValidators: true },
         )
       : await Team.findOneAndUpdate(
           {
@@ -330,16 +341,17 @@ export async function POST(
             tasks: { $not: { $elemMatch: { taskId: submissionTaskId } } },
           },
           { $push: { tasks: submission } },
-          { new: true, runValidators: true }
+          { new: true, runValidators: true },
         );
 
     if (!updatedTeam) {
       return NextResponse.json(
         {
           success: false,
-          error: "This submission was changed or locked while you were submitting",
+          error:
+            "This submission was changed or locked while you were submitting",
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -357,7 +369,7 @@ export async function POST(
 
     return NextResponse.json(
       { success: false, error: "Failed to submit task" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -365,7 +377,7 @@ export async function POST(
 // GET /api/team/tasks/[taskId]/submit - Get submission details for a specific task
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ taskId: string }> }
+  context: { params: Promise<{ taskId: string }> },
 ) {
   try {
     const { taskId } = await context.params;
@@ -373,7 +385,7 @@ export async function GET(
     if (!isValidObjectId(taskId)) {
       return NextResponse.json(
         { success: false, error: "Invalid task ID" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -384,7 +396,7 @@ export async function GET(
     if (!user || user.role !== "leader") {
       return NextResponse.json(
         { success: false, error: "Team leader authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -395,7 +407,7 @@ export async function GET(
     if (!team) {
       return NextResponse.json(
         { success: false, error: "Team not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -404,13 +416,13 @@ export async function GET(
     if (!task) {
       return NextResponse.json(
         { success: false, error: "Task not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Find the submission
     const submission = team.tasks.find(
-      (sub) => sub.taskId.toString() === taskId
+      (sub) => sub.taskId.toString() === taskId,
     );
 
     return NextResponse.json({
@@ -430,7 +442,7 @@ export async function GET(
 
     return NextResponse.json(
       { success: false, error: "Failed to get task submission" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

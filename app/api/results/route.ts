@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "../../../lib/mongodb";
+import { areResultsPublished } from "../../../lib/resultsVisibility";
 import { Team } from "../../../models/Team";
 
 // Import models to ensure they are registered with Mongoose
@@ -9,6 +10,27 @@ import "../../../models/ProblemStatement";
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
+
+    const published = await areResultsPublished();
+    if (!published) {
+      return NextResponse.json(
+        {
+          success: true,
+          published: false,
+          teams: [],
+          selectedTeams: [],
+          waitlistedTeams: [],
+          teamsByPS: {},
+          statistics: {
+            totalSelectedTeams: 0,
+            totalWaitlistedTeams: 0,
+            totalTeams: 0,
+            uniqueProblemStatements: 0,
+          },
+        },
+        { headers: { "Cache-Control": "no-store" } }
+      );
+    }
 
     const url = new URL(request.url);
     const statusParam = url.searchParams.get("status");
@@ -102,6 +124,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      published: true,
       teams,
       selectedTeams,
       waitlistedTeams,
@@ -112,7 +135,7 @@ export async function GET(request: NextRequest) {
         totalTeams: teams.length,
         uniqueProblemStatements: Object.keys(teamsByPS).length,
       },
-    });
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch (error: unknown) {
     console.error("Get results error:", error);
 

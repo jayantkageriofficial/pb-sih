@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "../../../lib/middleware/auth";
 import { Team } from "../../../models/Team";
 import dbConnect from "../../../lib/mongodb";
+import {
+  areResultsPublished,
+  getLeaderVisibleTeamStatus,
+} from "../../../lib/resultsVisibility";
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,6 +39,8 @@ export async function GET(request: NextRequest) {
       .lean();
 
     if (existingTeam) {
+      const resultsPublished = await areResultsPublished();
+
       // Team exists - return team details
       return NextResponse.json({
         success: true,
@@ -43,7 +49,11 @@ export async function GET(request: NextRequest) {
         team: {
           _id: existingTeam._id,
           teamName: existingTeam.teamName,
-          status: existingTeam.status,
+          status: getLeaderVisibleTeamStatus(
+            existingTeam.status,
+            resultsPublished
+          ),
+          resultsPublished,
           registrationDate: existingTeam.registrationDate,
           memberCount: existingTeam.members.length,
           problemStatement: existingTeam.problemStatement,

@@ -6,6 +6,10 @@ import { ProblemStatement } from "../../../models/ProblemStatement";
 import { User } from "../../../models/User";
 import dbConnect from "../../../lib/mongodb";
 import {
+  areResultsPublished,
+  getLeaderVisibleTeamStatus,
+} from "../../../lib/resultsVisibility";
+import {
   validateTeamRegistration,
   validateTeamMember,
   validateCrossTeamDuplicates,
@@ -404,6 +408,8 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const resultsPublished = await areResultsPublished();
+
     return NextResponse.json({
       success: true,
       isRegistered: true,
@@ -414,7 +420,8 @@ export async function GET(request: NextRequest) {
         leader: team.leader,
         members: team.members,
         problemStatement: team.problemStatement,
-        status: team.status,
+        status: getLeaderVisibleTeamStatus(team.status, resultsPublished),
+        resultsPublished,
         registrationDate: team.registrationDate,
         tasks: team.tasks,
       },

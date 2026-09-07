@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "../../../../lib/middleware/auth";
 import { Team } from "../../../../models/Team";
 import dbConnect from "../../../../lib/mongodb";
+import {
+  areResultsPublished,
+  getLeaderVisibleTeamStatus,
+} from "../../../../lib/resultsVisibility";
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,6 +45,8 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const resultsPublished = await areResultsPublished();
+
     // Return complete team details
     return NextResponse.json({
       success: true,
@@ -52,7 +58,8 @@ export async function GET(request: NextRequest) {
         leader: team.leader,
         members: team.members,
         problemStatement: team.problemStatement,
-        status: team.status,
+        status: getLeaderVisibleTeamStatus(team.status, resultsPublished),
+        resultsPublished,
         registrationDate: team.registrationDate,
         tasks: team.tasks || [],
         createdAt: team.createdAt,

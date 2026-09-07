@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import StatsCard from "@/components/admin/StatsCard";
 import { useAdminAuth } from "@/lib/context/AdminAuthContext";
-import { Users, Settings, AlertCircle, TrendingUp, Award } from "lucide-react";
+import {
+  Users,
+  Settings,
+  AlertCircle,
+  TrendingUp,
+  Award,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 
 interface DashboardStats {
   totalTeams: number;
@@ -27,6 +35,13 @@ export default function SuperAdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [resultsPublished, setResultsPublished] = useState(false);
+  const [resultsVisibilityLoading, setResultsVisibilityLoading] = useState(true);
+  const [resultsVisibilityUpdating, setResultsVisibilityUpdating] =
+    useState(false);
+  const [resultsVisibilityError, setResultsVisibilityError] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     if (!isSuperAdmin) {
@@ -163,6 +178,81 @@ export default function SuperAdminDashboard() {
 
     fetchStats();
   }, [isSuperAdmin, router]);
+
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+
+    const controller = new AbortController();
+
+    const fetchResultsVisibility = async () => {
+      const token = localStorage.getItem("adminToken");
+      if (!token) {
+        setResultsVisibilityLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch("/sih/api/admin/results-visibility", {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to load results visibility");
+        }
+
+        setResultsPublished(data.resultsPublished === true);
+        setResultsVisibilityError(null);
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") return;
+        console.error("Error fetching results visibility:", error);
+        setResultsVisibilityError("Could not load the publication setting.");
+      } finally {
+        if (!controller.signal.aborted) setResultsVisibilityLoading(false);
+      }
+    };
+
+    fetchResultsVisibility();
+    return () => controller.abort();
+  }, [isSuperAdmin]);
+
+  const toggleResultsVisibility = async () => {
+    const token = localStorage.getItem("adminToken");
+    if (!token || resultsVisibilityLoading || resultsVisibilityUpdating) return;
+
+    const nextValue = !resultsPublished;
+    setResultsVisibilityUpdating(true);
+    setResultsVisibilityError(null);
+
+    try {
+      const response = await fetch("/sih/api/admin/results-visibility", {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ resultsPublished: nextValue }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update results visibility");
+      }
+
+      setResultsPublished(data.resultsPublished === true);
+    } catch (error) {
+      console.error("Error updating results visibility:", error);
+      setResultsVisibilityError(
+        error instanceof Error
+          ? error.message
+          : "Could not update the publication setting."
+      );
+    } finally {
+      setResultsVisibilityUpdating(false);
+    }
+  };
 
   if (!isSuperAdmin) {
     return (
@@ -454,6 +544,79 @@ export default function SuperAdminDashboard() {
             </div>
           </motion.div>
         </div>
+
+        {/* Results Publication */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className={`bg-gray-900/50 backdrop-blur-sm border rounded-2xl p-6 sm:p-8 ${
+            resultsPublished ? "border-green-500/30" : "border-gray-800"
+          }`}
+        >
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div
+                className={`rounded-xl p-3 ${
+                  resultsPublished ? "bg-green-500/20" : "bg-gray-800"
+                }`}
+              >
+                {resultsPublished ? (
+                  <Eye className="h-6 w-6 text-green-400" />
+                ) : (
+                  <EyeOff className="h-6 w-6 text-gray-400" />
+                )}
+              </div>
+              <div>
+                <h2 className="text-xl font-display text-heading mb-1">
+                  Publish Results
+                </h2>
+                <p id="results-visibility-description" className="text-sm text-gray-400">
+                  {resultsPublished
+                    ? "Results are visible on the public results page and to team leaders."
+                    : "Public and team-leader result data is currently hidden."}
+                </p>
+                {resultsVisibilityError && (
+                  <p className="mt-2 text-sm text-red-400" role="alert">
+                    {resultsVisibilityError}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 self-end sm:self-auto">
+              <span
+                className={`text-sm font-medium ${
+                  resultsPublished ? "text-green-400" : "text-gray-400"
+                }`}
+              >
+                {resultsVisibilityLoading
+                  ? "Loading"
+                  : resultsPublished
+                    ? "Public"
+                    : "Private"}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={resultsPublished}
+                aria-describedby="results-visibility-description"
+                aria-label="Publish results"
+                disabled={resultsVisibilityLoading || resultsVisibilityUpdating}
+                onClick={toggleResultsVisibility}
+                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-heading focus:ring-offset-2 focus:ring-offset-gray-900 disabled:cursor-not-allowed disabled:opacity-50 ${
+                  resultsPublished ? "bg-green-600" : "bg-gray-600"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                    resultsPublished ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Additional Controls */}
         <motion.div
